@@ -1,8 +1,8 @@
-# Plugin Installer for Roundcube
+# Skin Installer for Roundcube
 
-This installer ensures that plugins end up in the correct directory:
+This installer ensures that skins end up in the correct directory:
 
- * `<roundcube-root>/plugins/plugin-name`
+ * `<roundcube-root>/skins/skin-name`
 
 ## Minimum setup
 
@@ -12,10 +12,10 @@ This installer ensures that plugins end up in the correct directory:
 ### sample composer.json for plugins
 
     {
-        "name": "yourvendor/plugin-name",
+        "name": "yourvendor/skin-name",
         "license": "the license",
-        "description": "tell the world what your plugin is good at",
-        "type": "roundcube-plugin",
+        "description": "describe your skin",
+        "type": "roundcube-skin",
         "authors": [
             {
                 "name": "<your-name>",
@@ -29,12 +29,10 @@ This installer ensures that plugins end up in the correct directory:
             }
         ]
         "require": {
-            "roundcube/plugin-installer": "*"
+            "lucasmarin/skin-installer": "*"
         },
         "minimum-stability": "dev-master"
     }
-
-  * Submit your plugin to [plugins.roundcube.net](http://plugins.roundcube.net).
 
 ## Installation
 
@@ -42,5 +40,3 @@ This installer ensures that plugins end up in the correct directory:
  * `cp composer.json-dist composer.json`
  * add your plugin in the `require` section of composer.json
  * `composer.phar install`
-
-Read the whole story at [plugins.roundcube.net](http://plugins.roundcube.net/about).
