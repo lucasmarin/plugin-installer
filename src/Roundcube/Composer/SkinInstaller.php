@@ -14,7 +14,7 @@ use Composer\Util\ProcessExecutor;
  * @package  SkinInstaller
  * @author   Till Klampaeckel <till@php.net>
  * @author   Thomas Bruederli <thomas@roundcube.net>
- * @author   Lucas Stevanelli Marin <lucasmarin@gmail.com.br>
+ * @author   Lucas Stevanelli Marin <lucasmarin@gmail.com>
  * @license  GPL-3.0+
  * @version  GIT: <git_id>
  * @link     http://github.com/lucasmarin/skin-installer
