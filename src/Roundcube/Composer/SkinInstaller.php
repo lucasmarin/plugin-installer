@@ -44,8 +44,16 @@ class SkinInstaller extends LibraryInstaller
         $this->rcubeVersionCheck($package);
         parent::install($repo, $package);
 
-        // post-install: activate skins in Roundcube config
+        // post-install: activate plugin in Roundcube config
+        $config_file = $this->rcubeConfigFile();
         $extra = $package->getExtra();
+        if (is_writeable($config_file) && php_sapi_name() == 'cli') {
+            $plugin_name = $this->getPluginName($package);
+            $answer = $this->io->askConfirmation("Do you want to activate the plugin $plugin_name? [N|y] ", false);
+            if (true === $answer) {
+                $this->rcubeAlterConfig($plugin_name);
+            }
+        }
 
         // run post-install script
         if (!empty($extra['roundcube']['post-install-script'])) {
@@ -82,6 +90,48 @@ class SkinInstaller extends LibraryInstaller
             $this->rcubeRunScript($extra['roundcube']['post-uninstall-script'], $package);
         }
     }
+
+    /**
+     * Update the given skin in the Roundcube config.
+     */
+    private function rcubeAlterConfig($skin_name)
+    {
+        $config_file = $this->rcubeConfigFile();
+        @include($config_file);
+        $success = false;
+        $varname = '$config';
+        if (empty($config) && !empty($rcmail_config)) {
+            $config = $rcmail_config;
+            $varname = '$rcmail_config';
+        }
+        if (is_array($config) && is_writeable($config_file)) {
+            $config_templ = @file_get_contents($config_file);
+            $active_skin = $config['skin'];
+            if ($active_skin != $skin_name) {
+                $active_skin = $skin_name;
+            }
+            if ($active_skin != $config['skin']) {
+                $var_export = "array(\n\t'" . join("',\n\t'", $active_skin) . "',\n);";
+                $new_config = preg_replace(
+                    "/(\\$varname\['skin'\])\s+=\s+(.+);/Uims",
+                    "\\1 = " . $var_export,
+                    $config_templ);
+                $success = file_put_contents($config_file, $new_config);
+            }
+        }
+        if ($success && php_sapi_name() == 'cli') {
+            $this->io->write("<info>Updated local config at $config_file</info>");
+        }
+        return $success;
+    }
+    /**
+     * Helper method to get an absolute path to the local Roundcube config file
+     */
+    private function rcubeConfigFile()
+    {
+        return realpath(getcwd() . '/config/config.inc.php');
+    }
+
 
     /**
      * {@inheritDoc}
