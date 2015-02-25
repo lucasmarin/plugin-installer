@@ -11,16 +11,17 @@ use Composer\Util\ProcessExecutor;
 
 /**
  * @category Plugins
- * @package  PluginInstaller
+ * @package  SkinInstaller
  * @author   Till Klampaeckel <till@php.net>
  * @author   Thomas Bruederli <thomas@roundcube.net>
+ * @author   Lucas Stevanelli Marin <lucasmarin@gmail.com.br>
  * @license  GPL-3.0+
  * @version  GIT: <git_id>
- * @link     http://github.com/roundcube/plugin-installer
+ * @link     http://github.com/lucasmarin/skin-installer
  */
-class PluginInstaller extends LibraryInstaller
+class SkinInstaller extends LibraryInstaller
 {
-    const INSTALLER_TYPE = 'roundcube-plugin';
+    const INSTALLER_TYPE = 'roundcube-skin';
 
     /**
      * {@inheritDoc}
@@ -32,7 +33,7 @@ class PluginInstaller extends LibraryInstaller
             $vendorDir = $this->getVendorDir();
         }
 
-        return sprintf('%s/%s', $vendorDir, $this->getPluginName($package));
+        return sprintf('%s/%s', $vendorDir, $this->getSkinName($package));
     }
 
     /**
@@ -43,24 +44,8 @@ class PluginInstaller extends LibraryInstaller
         $this->rcubeVersionCheck($package);
         parent::install($repo, $package);
 
-        // post-install: activate plugin in Roundcube config
-        $config_file = $this->rcubeConfigFile();
+        // post-install: activate skins in Roundcube config
         $extra = $package->getExtra();
-
-        if (is_writeable($config_file) && php_sapi_name() == 'cli') {
-            $plugin_name = $this->getPluginName($package);
-            $answer = $this->io->askConfirmation("Do you want to activate the plugin $plugin_name? [N|y] ", false);
-            if (true === $answer) {
-                $this->rcubeAlterConfig($plugin_name, true);
-            }
-        }
-
-        // initialize database schema
-        if (!empty($extra['roundcube']['sql-dir'])) {
-            if ($sqldir = realpath($this->getVendorDir() . "/$plugin_name/" . $extra['roundcube']['sql-dir'])) {
-                system(getcwd() . "/vendor/bin/rcubeinitdb.sh --package=$plugin_name --dir=$sqldir");
-            }
-        }
 
         // run post-install script
         if (!empty($extra['roundcube']['post-install-script'])) {
@@ -78,14 +63,6 @@ class PluginInstaller extends LibraryInstaller
 
         $extra = $target->getExtra();
 
-        // trigger updatedb.sh
-        if (!empty($extra['roundcube']['sql-dir'])) {
-            $plugin_name = $this->getPluginName($target);
-            if ($sqldir = realpath($this->getVendorDir() . "/$plugin_name/" . $extra['roundcube']['sql-dir'])) {
-                system(getcwd() . "/bin/updatedb.sh --package=$plugin_name --dir=$sqldir", $res);
-            }
-        }
-
         // run post-update script
         if (!empty($extra['roundcube']['post-update-script'])) {
             $this->rcubeRunScript($extra['roundcube']['post-update-script'], $target);
@@ -98,10 +75,6 @@ class PluginInstaller extends LibraryInstaller
     public function uninstall(InstalledRepositoryInterface $repo, PackageInterface $package)
     {
         parent::uninstall($repo, $package);
-
-        // post-uninstall: deactivate plugin
-        $plugin_name = $this->getPluginName($package);
-        $this->rcubeAlterConfig($plugin_name, false);
 
         // run post-uninstall script
         $extra = $package->getExtra();
@@ -120,26 +93,26 @@ class PluginInstaller extends LibraryInstaller
 
     /**
      * Setup vendor directory to one of these two:
-     *  ./plugins
+     *  ./skinss
      *
      * @return string
      */
     public function getVendorDir()
     {
-        $pluginDir  = getcwd();
-        $pluginDir .= '/plugins';
+        $skinsDir  = getcwd();
+        $skinsDir .= '/skins';
 
-        return $pluginDir;
+        return $skinsDir;
     }
 
     /**
-     * Extract the (valid) plugin name from the package object
+     * Extract the (valid) skins name from the package object
      */
-    private function getPluginName(PackageInterface $package)
+    private function getSkinName(PackageInterface $package)
     {
-        @list($vendor, $pluginName) = explode('/', $package->getPrettyName());
+        @list($vendor, $skinsName) = explode('/', $package->getPrettyName());
 
-        return strtr($pluginName, '-', '_');
+        return strtr($skinsName, '-', '_');
     }
 
     /**
@@ -175,63 +148,14 @@ class PluginInstaller extends LibraryInstaller
     }
 
     /**
-     * Add or remove the given plugin to the list of active plugins in the Roundcube config.
-     */
-    private function rcubeAlterConfig($plugin_name, $add)
-    {
-        $config_file = $this->rcubeConfigFile();
-        @include($config_file);
-        $success = false;
-        $varname = '$config';
-
-        if (empty($config) && !empty($rcmail_config)) {
-            $config = $rcmail_config;
-            $varname = '$rcmail_config';
-        }
-
-        if (is_array($config) && is_writeable($config_file)) {
-            $config_templ = @file_get_contents($config_file);
-            $active_plugins = (array) $config['plugins'];
-            if ($add && !in_array($plugin_name, $active_plugins)) {
-                $active_plugins[] = $plugin_name;
-            } elseif (!$add && ($i = array_search($plugin_name, $active_plugins)) !== false) {
-                unset($active_plugins[$i]);
-            }
-
-            if ($active_plugins != $config['plugins']) {
-                $var_export = "array(\n\t'" . join("',\n\t'", $active_plugins) . "',\n);";
-                $new_config = preg_replace(
-                    "/(\\$varname\['plugins'\])\s+=\s+(.+);/Uims",
-                    "\\1 = " . $var_export,
-                    $config_templ);
-                $success = file_put_contents($config_file, $new_config);
-            }
-        }
-
-        if ($success && php_sapi_name() == 'cli') {
-            $this->io->write("<info>Updated local config at $config_file</info>");
-        }
-
-        return $success;
-    }
-
-    /**
-     * Helper method to get an absolute path to the local Roundcube config file
-     */
-    private function rcubeConfigFile()
-    {
-        return realpath(getcwd() . '/config/config.inc.php');
-    }
-
-    /**
      * Run the given script file
      */
     private function rcubeRunScript($script, PackageInterface $package)
     {
-        @list($vendor, $plugin_name) = explode('/', $package->getPrettyName());
+        @list($vendor, $skin_name) = explode('/', $package->getPrettyName());
 
         // run executable shell script
-        if (($scriptfile = realpath($this->getVendorDir() . "/$plugin_name/$script")) && is_executable($scriptfile)) {
+        if (($scriptfile = realpath($this->getVendorDir() . "/$skin_name/$script")) && is_executable($scriptfile)) {
             system($scriptfile, $res);
         }
         // run PHP script in Roundcube context
