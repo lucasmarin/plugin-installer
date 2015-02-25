@@ -22,12 +22,6 @@ This installer ensures that skins end up in the correct directory:
                 "email": "<your-email>"
             }
         ],
-        "repositories": [
-            {
-                "type": "composer",
-                "url": "http://plugins.roundcube.net"
-            }
-        ]
         "require": {
             "lucasmarin/skin-installer": "*"
         },
