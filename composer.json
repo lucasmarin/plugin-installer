@@ -1,6 +1,6 @@
 {
-    "name": "roundcube/plugin-installer",
-    "description": "A composer-installer for Roundcube plugins.",
+    "name": "lucasmarin/theme-installer",
+    "description": "A composer-installer for Roundcube themes.",
     "type": "composer-installer",
     "license": "GPL-3.0+",
     "authors": [
@@ -11,6 +11,10 @@
         {
             "name": "Till Klampaeckel",
             "email": "till@php.net"
+        },
+        {
+            "name": "Lucas Stevanelli Marin",
+            "email": "lucas.marin@gmail.com"
         }
     ],
     "autoload": {
@@ -19,7 +23,7 @@
         }
     },
     "extra": {
-        "class": "Roundcube\\Composer\\PluginInstaller"
+        "class": "Roundcube\\Composer\\ThemeInstaller"
     },
     "bin": [
         "src/bin/rcubeinitdb.sh"
