@@ -6,7 +6,7 @@ This installer ensures that skins end up in the correct directory:
 
 ## Minimum setup
 
- * create a `composer.json` file in your plugin's repository
+ * create a `composer.json` file in your skin's repository
  * add the following contents
 
 ### sample composer.json for plugins
